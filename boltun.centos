@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# boltun
+#
+#
+# chkconfig: - 23 77
+#
+
+start() {
+	local ret
+
+	echo $"Starting boltun:"
+
+	modprobe ipip 2>/dev/null
+
+	for CONF in `ls /etc/boltun/*.conf 2>/dev/null`
+	do
+	    NAME=`basename $CONF | sed 's/\.conf$//'`
+	    PIDFILE="/var/run/boltun.${NAME}.pid"
+
+	    echo -n $"  $NAME"
+	    /usr/sbin/boltun --daemon --config $CONF --writepid $PIDFILE
+
+	    if [ "$?" -ne "0" ]; then
+		failure; echo
+	    else
+		success; echo
+	    fi
+	done
+}
+
+stop() {
+	echo -n $"Stopping boltun:"
+
+	for PIDFILE in `ls /var/run/boltun.*.pid 2>/dev/null`
+	do
+	    NAME=`basename $PIDFILE | sed 's/^boltun\.//; s/\.pid$//'`
+
+	    ebegin "  $NAME"
+	    start-stop-daemon --stop --quiet --pidfile $PIDFILE
+
+	    eend $?
+	done
+}
+
+# See how we were called.
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    restart)
+	stop
+	start
+	;;
+esac

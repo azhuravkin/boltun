@@ -1,0 +1,39 @@
+#!/sbin/runscript
+
+depend() {
+	use net
+	after logger
+}
+
+start() {
+	local ret
+
+	ebegin "Starting boltun:"
+
+	modprobe ipip 2>/dev/null
+
+	for CONF in `ls /etc/boltun/*.conf 2>/dev/null`
+	do
+	    NAME=`basename $CONF | sed 's/\.conf$//'`
+	    PIDFILE="/var/run/boltun.${NAME}.pid"
+
+	    ebegin "  $NAME"
+	    start-stop-daemon --start --quiet --exec /usr/sbin/boltun --pidfile $PIDFILE -- --daemon --config $CONF --writepid $PIDFILE
+
+	    eend $?
+	done
+}
+
+stop() {
+	ebegin "Stopping boltun:"
+
+	for PIDFILE in `ls /var/run/boltun.*.pid 2>/dev/null`
+	do
+	    NAME=`basename $PIDFILE | sed 's/^boltun\.//; s/\.pid$//'`
+
+	    ebegin "  $NAME"
+	    start-stop-daemon --stop --quiet --pidfile $PIDFILE
+
+	    eend $?
+	done
+}
